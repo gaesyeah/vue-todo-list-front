@@ -20,7 +20,8 @@ defineProps<{
 <template>
   <div class="input-container">
     <label class="label">
-      {{ `${label}${required ? '*' : ''}` }}
+      {{ label }}
+      {{ required ? '*' : '' }}
 
       <input
         class="input"
@@ -32,7 +33,7 @@ defineProps<{
       />
     </label>
 
-    <p class="error-message" v-if="errorMessage && errorMessage.validation">
+    <p class="error-message" v-if="errorMessage?.validation">
       {{ errorMessage?.message }}
     </p>
   </div>
@@ -48,6 +49,7 @@ defineProps<{
   border-radius: 8px;
   padding-left: 5px;
   font-size: 14px;
+  border: 2px solid gray;
 }
 .input::placeholder {
   font-size: 14px;

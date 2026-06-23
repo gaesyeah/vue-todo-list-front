@@ -3,17 +3,22 @@ import type { Task, TaskList } from './types/task.types';
 import { computed, ref } from 'vue';
 import BaseInput from './components/BaseInput.vue';
 import TaskItem from './components/TaskItem.vue';
+import { v4 as uuidv4 } from 'uuid';
 
 const firstInputRef = ref<InstanceType<typeof BaseInput> | null>(null);
 
 const tasks = ref<TaskList>([]);
 
-const newTask = ref<Task>({ name: '', description: '' });
+const newTask = ref<Task>({ name: '', description: '', id: uuidv4() });
 
 const addTask = () => {
   tasks.value.push({ ...newTask.value });
-  newTask.value = { name: '', description: '' };
+  newTask.value = { name: '', description: '', id: uuidv4() };
   firstInputRef.value?.focus();
+};
+
+const removeTask = (id: string) => {
+  tasks.value = tasks.value.filter(({ id: taskId }) => id !== taskId);
 };
 
 const taskNameAlreadyExists = computed(() => {
@@ -66,7 +71,7 @@ const isNewTaskInvalid = computed(() => {
     </div>
 
     <ul class="task-list-container">
-      <TaskItem v-for="task in tasks" :task="task" :key="task.name" />
+      <TaskItem v-for="task in tasks" :task="task" :key="task.name" @remove="removeTask" />
     </ul>
   </div>
 </template>
@@ -106,6 +111,7 @@ const isNewTaskInvalid = computed(() => {
 .add-task-button {
   font-size: 16px;
   height: 33px;
+  border: none;
   border-radius: 10px;
   background-color: lightgreen;
   cursor: pointer;
