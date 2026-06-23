@@ -1,37 +1,57 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, type ClassValue } from 'vue';
+import { v4 as uuidv4 } from 'uuid';
 
 const model = defineModel<string>();
 
-const inputRef = ref<HTMLInputElement | null>(null);
+const inputRef = ref<HTMLInputElement | HTMLTextAreaElement | null>(null);
 defineExpose({
   focus: () => inputRef.value?.focus(),
 });
 
+const inputId = uuidv4();
+
 defineProps<{
-  label: string;
+  label?: string;
   placeholder?: string;
-  type?: string;
   required?: boolean;
+  disabled?: boolean;
+  class?: ClassValue;
   errorMessage?: { validation: boolean; message: string };
+  type?: 'text' | 'number' | 'textarea';
 }>();
 </script>
 
 <template>
   <div class="input-container">
-    <label class="label">
-      {{ label }}
-      {{ required ? '*' : '' }}
+    <div class="label-container">
+      <label v-if="label" :for="inputId">{{ label }}{{ required ? '*' : '' }}</label>
 
       <input
+        v-if="type !== 'textarea'"
         class="input"
-        v-model="model"
         ref="inputRef"
+        v-model="model"
+        :type="type ?? 'text'"
+        :class="class"
+        :disabled="disabled"
+        :id="inputId"
         :placeholder="placeholder"
         :required="required"
-        :type="type ?? 'text'"
       />
-    </label>
+
+      <textarea
+        v-if="type === 'textarea'"
+        class="input"
+        ref="inputRef"
+        v-model="model"
+        :class="class"
+        :disabled="disabled"
+        :id="inputId"
+        :placeholder="placeholder"
+        :required="required"
+      />
+    </div>
 
     <p class="error-message" v-if="errorMessage?.validation">
       {{ errorMessage?.message }}
@@ -41,7 +61,7 @@ defineProps<{
 
 <style scoped>
 .input-container {
-  width: 300px;
+  width: 100%;
 }
 
 .input {
@@ -55,10 +75,11 @@ defineProps<{
   font-size: 14px;
 }
 
-.label {
+.label-container {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  width: 100%;
 }
 
 .error-message {

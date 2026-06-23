@@ -9,27 +9,31 @@ const firstInputRef = ref<InstanceType<typeof BaseInput> | null>(null);
 
 const tasks = ref<TaskList>([]);
 
-const newTask = ref<Task>({ name: '', description: '', id: uuidv4() });
+const newTaskInputValue = ref<Task>({ name: '', description: '', id: uuidv4() });
 
-const addTask = () => {
-  tasks.value.push({ ...newTask.value });
-  newTask.value = { name: '', description: '', id: uuidv4() };
+const createTask = () => {
+  tasks.value.push({ ...newTaskInputValue.value });
+  newTaskInputValue.value = { name: '', description: '', id: uuidv4() };
   firstInputRef.value?.focus();
 };
 
-const removeTask = (id: string) => {
+const deleteTask = (id: string) => {
   tasks.value = tasks.value.filter(({ id: taskId }) => id !== taskId);
+};
+
+const updateTask = (editedTask: Task) => {
+  tasks.value = tasks.value.map((task) => (task.id === editedTask.id ? editedTask : task));
 };
 
 const taskNameAlreadyExists = computed(() => {
   return tasks.value.some(
-    ({ name }) => name.toLowerCase() === newTask.value.name.trim().toLowerCase(),
+    ({ name }) => name.toLowerCase() === newTaskInputValue.value.name.trim().toLowerCase(),
   );
 });
 
 const isNewTaskInvalid = computed(() => {
-  const newName = newTask.value.name.trim();
-  const newDescription = newTask.value.description.trim();
+  const newName = newTaskInputValue.value.name.trim();
+  const newDescription = newTaskInputValue.value.description.trim();
 
   if (!newName || !newDescription) return true;
 
@@ -44,12 +48,12 @@ const isNewTaskInvalid = computed(() => {
 
   <div class="main-container">
     <div>
-      <form class="task-form" @submit.prevent="addTask">
+      <form class="task-form" @submit.prevent="createTask">
         <BaseInput
           ref="firstInputRef"
           label="nome da tarefa"
           placeholder="digite o nome da tarefa"
-          v-model="newTask.name"
+          v-model="newTaskInputValue.name"
           required
           :errorMessage="{
             validation: taskNameAlreadyExists,
@@ -60,18 +64,24 @@ const isNewTaskInvalid = computed(() => {
         <BaseInput
           label="nome da descrição"
           placeholder="digite a descrição da tarefa"
-          v-model="newTask.description"
+          v-model="newTaskInputValue.description"
           required
         />
 
-        <button class="add-task-button" :disabled="isNewTaskInvalid" type="submit">
+        <button class="create-task-button" :disabled="isNewTaskInvalid" type="submit">
           Adicionar
         </button>
       </form>
     </div>
 
     <ul class="task-list-container">
-      <TaskItem v-for="task in tasks" :task="task" :key="task.name" @remove="removeTask" />
+      <TaskItem
+        v-for="task in tasks"
+        :task="task"
+        :key="task.id"
+        @delete="deleteTask"
+        @update="updateTask"
+      />
     </ul>
   </div>
 </template>
@@ -100,15 +110,19 @@ const isNewTaskInvalid = computed(() => {
 .task-list-container {
   display: flex;
   gap: 30px;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .task-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 300px;
 }
 
-.add-task-button {
+.create-task-button {
   font-size: 16px;
   height: 33px;
   border: none;
@@ -116,7 +130,7 @@ const isNewTaskInvalid = computed(() => {
   background-color: lightgreen;
   cursor: pointer;
 }
-.add-task-button:disabled {
+.create-task-button:disabled {
   background-color: lightgrey;
   cursor: not-allowed;
 }
