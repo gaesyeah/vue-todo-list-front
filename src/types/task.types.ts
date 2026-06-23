@@ -1,3 +1,9 @@
-export type TaskList = Task[];
+export type Task = {
+  name: string;
+  description: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-export type Task = { name: string; description: string; id: string };
+export type TaskDTO = Pick<Task, 'name' | 'description'>;

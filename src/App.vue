@@ -1,62 +1,131 @@
 <script setup lang="ts">
-import type { Task, TaskList } from './types/task.types';
+import type { TaskDTO } from './types/task.types';
 import { computed, ref } from 'vue';
 import BaseInput from './components/BaseInput.vue';
 import TaskItem from './components/TaskItem.vue';
-import { v4 as uuidv4 } from 'uuid';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import TasksService from './services/tasks.services.ts';
+import { Toast, useToast } from 'primevue';
+import axios, { AxiosError } from 'axios';
 
-const firstInputRef = ref<InstanceType<typeof BaseInput> | null>(null);
-
-const tasks = ref<TaskList>([]);
-
-const newTaskInputValue = ref<Task>({ name: '', description: '', id: uuidv4() });
-
-const createTask = () => {
-  tasks.value.push({ ...newTaskInputValue.value });
-  newTaskInputValue.value = { name: '', description: '', id: uuidv4() };
-  firstInputRef.value?.focus();
-};
-
-const deleteTask = (id: string) => {
-  tasks.value = tasks.value.filter(({ id: taskId }) => id !== taskId);
-};
-
-const updateTask = (editedTask: Task) => {
-  tasks.value = tasks.value.map((task) => (task.id === editedTask.id ? editedTask : task));
-};
-
-const taskNameAlreadyExists = computed(() => {
-  return tasks.value.some(
-    ({ name }) => name.toLowerCase() === newTaskInputValue.value.name.trim().toLowerCase(),
-  );
+const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+  queryKey: ['tasks'],
+  queryFn: TasksService.readAll,
 });
 
-const isNewTaskInvalid = computed(() => {
-  const newName = newTaskInputValue.value.name.trim();
-  const newDescription = newTaskInputValue.value.description.trim();
+const newTaskInputValue = ref<TaskDTO>({ name: '', description: '' });
+
+const toast = useToast();
+
+const queryClient = useQueryClient();
+
+const taskErrorHandler = (error: AxiosError) => {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+
+    const detail = (() => {
+      switch (status) {
+        case 409:
+          return 'Já existe uma tarefa com esse nome';
+        case 404:
+          return 'Não existe uma tarefa com esse id';
+        default:
+          return 'Algo deu errado';
+      }
+    })();
+
+    toast.add({
+      severity: 'error',
+      summary: 'Erro!',
+      life: 3000,
+      detail,
+    });
+  }
+};
+
+const taskSuccessHandler = (key: 'create' | 'update' | 'delete') => {
+  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
+  const detailKey = (() => {
+    switch (key) {
+      case 'create':
+        return 'criada';
+      case 'delete':
+        return 'deletada';
+      case 'update':
+        return 'editada';
+    }
+  })();
+  const summary = `${detailKey.charAt(0).toUpperCase()}${detailKey.slice(1)}!`;
+  toast.add({
+    severity: 'success',
+    summary,
+    life: 3000,
+    detail: `Tarefa ${detailKey} com sucesso`,
+  });
+};
+
+const { mutate: createTask, isPending: isCreatingTask } = useMutation({
+  mutationFn: (dto: TaskDTO) => TasksService.create(dto),
+  onError: taskErrorHandler,
+  onSuccess: async () => {
+    taskSuccessHandler('create');
+    newTaskInputValue.value = { name: '', description: '' };
+  },
+});
+
+const { mutate: deleteTask, isPending: isDeletingTask } = useMutation({
+  mutationFn: (id: string) => TasksService.delete(id),
+  onSuccess: () => taskSuccessHandler('delete'),
+  onError: taskErrorHandler,
+});
+
+const { mutate: updateTask, isPending: isUpdatingTask } = useMutation({
+  mutationFn: ({ id, dto }: { id: string; dto: Partial<TaskDTO> }) => TasksService.update(id, dto),
+  onSuccess: () => taskSuccessHandler('update'),
+  onError: taskErrorHandler,
+});
+
+const isRequestsLoading = computed(
+  () =>
+    isLoadingTasks.value || isCreatingTask.value || isDeletingTask.value || isUpdatingTask.value,
+);
+
+const taskNameAlreadyExists = (name: string, excludeId?: string) => {
+  if (!name.trim()) return false;
+  return !!tasks.value?.some(
+    (task) => task.name.toLowerCase() === name.trim().toLowerCase() && task.id !== excludeId,
+  );
+};
+
+const isNewTaskInvalid = (task: TaskDTO) => {
+  const newName = task.name;
+  const newDescription = task.description;
 
   if (!newName || !newDescription) return true;
 
-  if (taskNameAlreadyExists.value) return true;
+  if (taskNameAlreadyExists(newName)) return true;
 
   return false;
-});
+};
 </script>
 
 <template>
+  <Toast />
+
   <header class="header"><p>Vue TodoList</p></header>
 
   <div class="main-container">
     <div>
-      <form class="task-form" @submit.prevent="createTask">
+      <form class="task-form" @submit.prevent="() => createTask(newTaskInputValue)">
         <BaseInput
-          ref="firstInputRef"
           label="nome da tarefa"
           placeholder="digite o nome da tarefa"
           v-model="newTaskInputValue.name"
           required
+          :isLoading="isRequestsLoading"
           :errorMessage="{
-            validation: taskNameAlreadyExists,
+            validation: taskNameAlreadyExists(newTaskInputValue.name),
             message: 'Já existe uma tarefa com esse nome',
           }"
         />
@@ -66,10 +135,15 @@ const isNewTaskInvalid = computed(() => {
           placeholder="digite a descrição da tarefa"
           v-model="newTaskInputValue.description"
           required
+          :isLoading="isRequestsLoading"
         />
 
-        <button class="create-task-button" :disabled="isNewTaskInvalid" type="submit">
-          Adicionar
+        <button
+          class="create-task-button"
+          type="submit"
+          :disabled="isNewTaskInvalid(newTaskInputValue) || isRequestsLoading"
+        >
+          {{ isRequestsLoading ? 'Carregando...' : 'Adicionar' }}
         </button>
       </form>
     </div>
@@ -79,8 +153,10 @@ const isNewTaskInvalid = computed(() => {
         v-for="task in tasks"
         :task="task"
         :key="task.id"
+        :isLoading="isRequestsLoading"
+        :taskNameAlreadyExists="taskNameAlreadyExists"
         @delete="deleteTask"
-        @update="updateTask"
+        @update="(id, dto) => updateTask({ id, dto })"
       />
     </ul>
   </div>

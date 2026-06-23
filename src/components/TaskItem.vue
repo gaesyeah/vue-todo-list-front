@@ -1,26 +1,33 @@
 <script setup lang="ts">
-import type { Task } from '@/types/task.types';
+import type { Task, TaskDTO } from '@/types/task.types';
 import { ref } from 'vue';
 import BaseInput from './BaseInput.vue';
 
 const emit = defineEmits<{
   delete: [id: string];
-  update: [task: Task];
+  update: [id: string, task: Partial<TaskDTO>];
 }>();
 
 const props = defineProps<{
   task: Task;
+  isLoading?: boolean;
+  taskNameAlreadyExists: (name: string, excludeId?: string) => boolean;
 }>();
 
 const updateTaskInputValue = ref<Task>({ ...props.task });
-//ou structuredClone(props.task)
 
 const isUpdateEnabled = ref<boolean>(false);
 const updateTask = () => {
   isUpdateEnabled.value = !isUpdateEnabled.value;
 
+  const updatedTaskHasNoChanges =
+    updateTaskInputValue.value.name === props.task.name &&
+    updateTaskInputValue.value.description === props.task.description;
+
+  if (updatedTaskHasNoChanges) return;
+
   if (!isUpdateEnabled.value) {
-    emit('update', updateTaskInputValue.value);
+    emit('update', props.task.id, updateTaskInputValue.value);
   }
 };
 </script>
@@ -34,8 +41,13 @@ const updateTask = () => {
   >
     <BaseInput
       v-model="updateTaskInputValue.name"
-      :class="!isUpdateEnabled && 'updating-input'"
+      :class="{ 'updating-input': !isUpdateEnabled }"
       :disabled="!isUpdateEnabled"
+      :isLoading="isLoading"
+      :errorMessage="{
+        validation: taskNameAlreadyExists(updateTaskInputValue.name, props.task.id),
+        message: 'Já existe uma tarefa com esse nome',
+      }"
     />
 
     <hr v-if="!isUpdateEnabled" />
@@ -43,18 +55,27 @@ const updateTask = () => {
     <BaseInput
       type="textarea"
       v-model="updateTaskInputValue.description"
-      :class="!isUpdateEnabled && 'updating-input'"
+      :class="{ 'updating-input': !isUpdateEnabled }"
       :disabled="!isUpdateEnabled"
+      :isLoading="isLoading"
     />
 
-    <button @click="emit('delete', task.id)" class="icon-button delete-icon-button">
+    <button
+      @click="emit('delete', task.id)"
+      class="icon-button delete-icon-button"
+      :disabled="isLoading"
+    >
       <i class="pi pi-trash"></i>
     </button>
 
     <button
       @click="updateTask"
       class="icon-button update-icon-button"
-      :disabled="Object.values(updateTaskInputValue).some((value) => !value)"
+      :disabled="
+        Object.values(updateTaskInputValue).some((value) => !value) ||
+        taskNameAlreadyExists(updateTaskInputValue.name, props.task.id) ||
+        isLoading
+      "
     >
       <i
         class="pi"

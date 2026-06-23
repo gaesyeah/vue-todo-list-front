@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { ref, type ClassValue } from 'vue';
+import { computed, ref, type ClassValue } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 
 const model = defineModel<string>();
 
-const inputRef = ref<HTMLInputElement | HTMLTextAreaElement | null>(null);
-defineExpose({
-  focus: () => inputRef.value?.focus(),
-});
-
 const inputId = uuidv4();
 
-defineProps<{
+const props = defineProps<{
   label?: string;
   placeholder?: string;
   required?: boolean;
@@ -19,7 +14,10 @@ defineProps<{
   class?: ClassValue;
   errorMessage?: { validation: boolean; message: string };
   type?: 'text' | 'number' | 'textarea';
+  isLoading?: boolean;
 }>();
+
+const disabled = computed(() => props.disabled || props.isLoading);
 </script>
 
 <template>
@@ -29,11 +27,10 @@ defineProps<{
 
       <input
         v-if="type !== 'textarea'"
-        class="input"
-        ref="inputRef"
         v-model="model"
+        class="input"
+        :class="[props.class, { 'input-loading': isLoading }]"
         :type="type ?? 'text'"
-        :class="class"
         :disabled="disabled"
         :id="inputId"
         :placeholder="placeholder"
@@ -42,10 +39,9 @@ defineProps<{
 
       <textarea
         v-if="type === 'textarea'"
-        class="input"
-        ref="inputRef"
         v-model="model"
-        :class="class"
+        class="input textarea"
+        :class="[props.class, { 'input-loading': isLoading }]"
         :disabled="disabled"
         :id="inputId"
         :placeholder="placeholder"
@@ -65,14 +61,20 @@ defineProps<{
 }
 
 .input {
-  height: 22px;
+  height: 25px;
   border-radius: 8px;
   padding-left: 5px;
   font-size: 14px;
   border: 2px solid gray;
 }
+.textarea {
+  height: 50px;
+}
 .input::placeholder {
   font-size: 14px;
+}
+.input-loading {
+  cursor: progress;
 }
 
 .label-container {
