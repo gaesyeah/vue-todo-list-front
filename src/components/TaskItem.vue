@@ -75,7 +75,6 @@ const taskHasEmptyField = Object.entries(props.task).some(
         v-model="updateTaskInputValue.isTaskDoneStatus"
         @change="emitTaskChanges"
         :disabled="isLoading"
-        :pt="{ box: { style: 'border-radius: 7px' } }"
       />
     </div>
 
@@ -140,7 +139,7 @@ const taskHasEmptyField = Object.entries(props.task).some(
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.3;
+  opacity: 0.25;
   font-size: 110px;
   z-index: 1;
 }
@@ -161,6 +160,12 @@ hr {
   position: absolute;
   right: 2px;
   top: 2px;
+}
+:deep(.checkbox .p-checkbox-box) {
+  border-radius: 7px;
+}
+:deep(.checkbox:not(.p-checkbox-checked) .p-checkbox-box) {
+  border-color: red;
 }
 .delete-icon-button {
   top: -9px;
