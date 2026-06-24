@@ -8,16 +8,9 @@ import TasksService from './services/tasks.services.ts';
 import { Toast, useToast } from 'primevue';
 import axios, { AxiosError } from 'axios';
 
-const { data: tasks, isLoading: isLoadingTasks } = useQuery({
-  queryKey: ['tasks'],
-  queryFn: TasksService.readAll,
-});
-
-const newTaskInputValue = ref<TaskDTO>({ name: '', description: '' });
+const queryKey: string[] = ['tasks'];
 
 const toast = useToast();
-
-const queryClient = useQueryClient();
 
 const taskErrorHandler = (error: AxiosError) => {
   if (axios.isAxiosError(error)) {
@@ -43,8 +36,9 @@ const taskErrorHandler = (error: AxiosError) => {
   }
 };
 
+const queryClient = useQueryClient();
 const taskSuccessHandler = (key: 'create' | 'update' | 'delete') => {
-  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  queryClient.invalidateQueries({ queryKey });
 
   const detailKey = (() => {
     switch (key) {
@@ -65,12 +59,19 @@ const taskSuccessHandler = (key: 'create' | 'update' | 'delete') => {
   });
 };
 
+const newTaskInputValue = ref<TaskDTO>({ name: '', description: '', isTaskDoneStatus: false });
+
+const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+  queryFn: TasksService.readAll,
+  queryKey,
+});
+
 const { mutate: createTask, isPending: isCreatingTask } = useMutation({
   mutationFn: (dto: TaskDTO) => TasksService.create(dto),
   onError: taskErrorHandler,
   onSuccess: async () => {
     taskSuccessHandler('create');
-    newTaskInputValue.value = { name: '', description: '' };
+    newTaskInputValue.value = { name: '', description: '', isTaskDoneStatus: false };
   },
 });
 
@@ -119,6 +120,7 @@ const isNewTaskInvalid = (task: TaskDTO) => {
     <div>
       <form class="task-form" @submit.prevent="() => createTask(newTaskInputValue)">
         <BaseInput
+          class="task-input"
           label="nome da tarefa"
           placeholder="digite o nome da tarefa"
           v-model="newTaskInputValue.name"
@@ -131,6 +133,7 @@ const isNewTaskInvalid = (task: TaskDTO) => {
         />
 
         <BaseInput
+          class="task-input"
           label="nome da descrição"
           placeholder="digite a descrição da tarefa"
           v-model="newTaskInputValue.description"
@@ -151,8 +154,8 @@ const isNewTaskInvalid = (task: TaskDTO) => {
     <ul class="task-list-container">
       <TaskItem
         v-for="task in tasks"
-        :task="task"
         :key="task.id"
+        :task="task"
         :isLoading="isRequestsLoading"
         :taskNameAlreadyExists="taskNameAlreadyExists"
         @delete="deleteTask"
@@ -174,7 +177,7 @@ const isNewTaskInvalid = (task: TaskDTO) => {
 
 .main-container {
   margin-top: 30px;
-  gap: 30px;
+  gap: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,6 +199,14 @@ const isNewTaskInvalid = (task: TaskDTO) => {
   flex-direction: column;
   gap: 10px;
   width: 300px;
+  padding: 15px;
+  border: 2px solid gray;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+:deep(.task-input) {
+  height: 30px;
 }
 
 .create-task-button {

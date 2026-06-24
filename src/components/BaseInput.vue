@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, type ClassValue } from 'vue';
+import { computed, type ClassValue } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
-
-const model = defineModel<string>();
-
-const inputId = uuidv4();
 
 const props = defineProps<{
   label?: string;
@@ -16,6 +12,10 @@ const props = defineProps<{
   type?: 'text' | 'number' | 'textarea';
   isLoading?: boolean;
 }>();
+
+const model = defineModel<string>();
+
+const inputId = uuidv4();
 
 const disabled = computed(() => props.disabled || props.isLoading);
 </script>
@@ -61,7 +61,7 @@ const disabled = computed(() => props.disabled || props.isLoading);
 }
 
 .input {
-  height: 25px;
+  height: 24px;
   border-radius: 8px;
   padding-left: 5px;
   font-size: 14px;

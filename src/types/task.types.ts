@@ -1,9 +1,10 @@
 export type Task = {
+  id: string;
   name: string;
   description: string;
-  id: string;
+  isTaskDoneStatus: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-export type TaskDTO = Pick<Task, 'name' | 'description'>;
+export type TaskDTO = Pick<Task, 'name' | 'description' | 'isTaskDoneStatus'>;

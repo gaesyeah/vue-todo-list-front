@@ -2,6 +2,7 @@
 import type { Task, TaskDTO } from '@/types/task.types';
 import { ref } from 'vue';
 import BaseInput from './BaseInput.vue';
+import Checkbox from 'primevue/checkbox';
 
 const emit = defineEmits<{
   delete: [id: string];
@@ -16,6 +17,10 @@ const props = defineProps<{
 
 const updateTaskInputValue = ref<Task>({ ...props.task });
 
+const emitTaskChanges = () => {
+  emit('update', props.task.id, updateTaskInputValue.value);
+};
+
 const isUpdateEnabled = ref<boolean>(false);
 const updateTask = () => {
   isUpdateEnabled.value = !isUpdateEnabled.value;
@@ -26,10 +31,12 @@ const updateTask = () => {
 
   if (updatedTaskHasNoChanges) return;
 
-  if (!isUpdateEnabled.value) {
-    emit('update', props.task.id, updateTaskInputValue.value);
-  }
+  if (!isUpdateEnabled.value) emitTaskChanges();
 };
+
+const taskHasEmptyField = Object.entries(props.task).some(
+  ([key, value]) => (key as keyof TaskDTO) !== 'isTaskDoneStatus' && !value,
+);
 </script>
 
 <template>
@@ -39,16 +46,38 @@ const updateTask = () => {
       'task-item-gap': isUpdateEnabled,
     }"
   >
-    <BaseInput
-      v-model="updateTaskInputValue.name"
-      :class="{ 'updating-input': !isUpdateEnabled }"
-      :disabled="!isUpdateEnabled"
-      :isLoading="isLoading"
-      :errorMessage="{
-        validation: taskNameAlreadyExists(updateTaskInputValue.name, props.task.id),
-        message: 'Já existe uma tarefa com esse nome',
+    <i
+      :class="{
+        pi: true,
+        'done-overlay': true,
+        'pi-ban': !props.task.isTaskDoneStatus,
+        'red-icon': !props.task.isTaskDoneStatus,
+        'pi-check-circle': props.task.isTaskDoneStatus,
+        'green-icon': props.task.isTaskDoneStatus,
       }"
-    />
+    ></i>
+
+    <div class="name-input-container">
+      <BaseInput
+        v-model="updateTaskInputValue.name"
+        :class="{ 'updating-input': !isUpdateEnabled }"
+        :disabled="!isUpdateEnabled"
+        :isLoading="isLoading"
+        :errorMessage="{
+          validation: taskNameAlreadyExists(updateTaskInputValue.name, props.task.id),
+          message: 'Já existe uma tarefa com esse nome',
+        }"
+      />
+      <Checkbox
+        v-if="isUpdateEnabled"
+        binary
+        class="checkbox"
+        v-model="updateTaskInputValue.isTaskDoneStatus"
+        @change="emitTaskChanges"
+        :disabled="isLoading"
+        :pt="{ box: { style: 'border-radius: 7px' } }"
+      />
+    </div>
 
     <hr v-if="!isUpdateEnabled" />
 
@@ -62,7 +91,7 @@ const updateTask = () => {
 
     <button
       @click="emit('delete', task.id)"
-      class="icon-button delete-icon-button"
+      class="icon-button delete-icon-button red-icon"
       :disabled="isLoading"
     >
       <i class="pi pi-trash"></i>
@@ -72,7 +101,7 @@ const updateTask = () => {
       @click="updateTask"
       class="icon-button update-icon-button"
       :disabled="
-        Object.values(updateTaskInputValue).some((value) => !value) ||
+        taskHasEmptyField ||
         taskNameAlreadyExists(updateTaskInputValue.name, props.task.id) ||
         isLoading
       "
@@ -80,8 +109,8 @@ const updateTask = () => {
       <i
         class="pi"
         :class="{
-          'pi-check-square check-icon': isUpdateEnabled,
-          'pi-pen-to-square update-icon': !isUpdateEnabled,
+          'pi-check-square green-icon': isUpdateEnabled,
+          'pi-pen-to-square blue-icon': !isUpdateEnabled,
         }"
       ></i>
     </button>
@@ -97,9 +126,23 @@ const updateTask = () => {
   border-radius: 10px;
   padding: 15px;
   position: relative;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 .task-item-gap {
   gap: 18px;
+}
+.name-input-container {
+  display: flex;
+  position: relative;
+}
+.done-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  font-size: 110px;
+  z-index: 1;
 }
 
 hr {
@@ -114,17 +157,24 @@ hr {
   color: black;
 }
 
+.checkbox {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+}
 .delete-icon-button {
-  color: red;
   top: -9px;
 }
 .update-icon-button {
   bottom: -9px;
 }
-.update-icon {
+.blue-icon {
   color: blue;
 }
-.check-icon {
+.red-icon {
+  color: red;
+}
+.green-icon {
   color: green;
 }
 .icon-button {
