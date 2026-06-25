@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Task, TaskDTO } from '@/types/task.types';
+import type { Task, TaskDTO } from '@/types/task.type.ts';
 import { computed, ref } from 'vue';
 import BaseInput from './BaseInput.vue';
 import Checkbox from 'primevue/checkbox';

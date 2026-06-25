@@ -9,7 +9,7 @@ const props = defineProps<{
   disabled?: boolean;
   class?: ClassValue;
   errorMessage?: { validation: boolean; message: string };
-  type?: 'text' | 'number' | 'textarea';
+  type?: 'textarea' | 'text' | 'number' | 'email' | 'password';
   isLoading?: boolean;
 }>();
 
