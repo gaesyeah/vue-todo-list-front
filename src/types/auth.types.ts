@@ -6,4 +6,4 @@ export type SignUpDto = {
 
 export type SignInDto = Omit<SignUpDto, 'confirmPassword'>;
 
-export type SignInResponse = { accessToken: string };
+export type SignInResponse = { accessToken: string; email: string };

@@ -14,6 +14,8 @@ const router = useRouter();
 
 const queryKey: string[] = ['tasks'];
 
+const userEmailFromStorage = localStorage.getItem('email');
+
 const taskErrorHandler = (error: AxiosError) => {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
@@ -96,7 +98,14 @@ const isRequestsLoading = computed(
 
 const logout = () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('email');
   router.push({ name: 'signin' });
+  toast.add({
+    severity: 'success',
+    summary: 'Logout realizado',
+    detail: 'Você foi desconectado com sucesso.',
+    life: 3000,
+  });
 };
 
 const taskNameAlreadyExists = (name: string, excludeId?: string) => {
@@ -120,9 +129,14 @@ const isNewTaskInvalid = (task: TaskDTO) => {
 
 <template>
   <header class="header">
-    <button @click="logout" class="logout-button">
-      <i class="pi pi-arrow-circle-left logout-icon"></i>
-    </button>
+    <div class="user-menu-container">
+      <button @click="logout" class="logout-button">
+        <i class="pi pi-arrow-circle-left logout-icon"></i>
+      </button>
+
+      <p>{{ userEmailFromStorage }}</p>
+    </div>
+
     <p>Vue TodoList</p>
   </header>
 
@@ -185,6 +199,12 @@ const isNewTaskInvalid = (task: TaskDTO) => {
   background-color: lightgreen;
   font-size: 25px;
 }
+@media (max-width: 768px) {
+  .header {
+    height: 100px;
+    font-size: 20px;
+  }
+}
 
 .main-container {
   margin-top: 30px;
@@ -236,6 +256,14 @@ const isNewTaskInvalid = (task: TaskDTO) => {
   cursor: not-allowed;
 }
 
+.user-menu-container {
+  position: absolute;
+  left: 5px;
+  top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 .logout-button {
   display: flex;
   align-items: center;
@@ -244,8 +272,6 @@ const isNewTaskInvalid = (task: TaskDTO) => {
   background-color: transparent;
   border-radius: 100%;
   cursor: pointer;
-  position: absolute;
-  left: 5px;
 }
 .logout-icon {
   font-size: 35px;

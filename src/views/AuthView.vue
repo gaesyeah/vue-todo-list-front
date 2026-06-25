@@ -42,9 +42,10 @@ const authResponseHandler = (severity: 'success' | 'error', error?: Error) => {
 
 const { mutate: signIn, isPending: isSignInLoading } = useMutation({
   mutationFn: (dto: SignInDto) => AuthService.signIn(dto),
-  onSuccess: (data) => {
+  onSuccess: ({ email, accessToken }) => {
     authResponseHandler('success');
-    localStorage.setItem('token', data.accessToken);
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('email', email);
     router.push({ name: 'tasks' });
   },
   onError: (error) => authResponseHandler('error', error),
